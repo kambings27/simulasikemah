@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulasi Krisis Kemah — Panitia SMP</title>
+<style>
+  :root{
+    --bg:#0a1710; --panel:rgba(255,255,255,.055); --panel-2:rgba(255,255,255,.09);
+    --border:rgba(255,255,255,.11); --text:#e8f0ea; --muted:#93a89b;
+    --green:#4ade80; --amber:#fbbf24; --red:#f87171; --blue:#60a5fa;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',sans-serif;
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 15% -5%, rgba(74,222,128,.16) 0%, transparent 45%),
+      radial-gradient(circle at 90% 105%, rgba(251,191,36,.13) 0%, transparent 45%);
+    background-attachment:fixed;
+    color:var(--text); min-height:100vh; padding:20px 16px 40px;
+    display:flex; justify-content:center; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{width:100%;max-width:880px;}
+  .screen{display:none;animation:fade .45s ease;}
+  .screen.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .hero{
+    text-align:center; padding:48px 24px 40px;
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:22px; backdrop-filter:blur(12px);
+  }
+  .badge{
+    display:inline-block; font-size:.72rem; letter-spacing:.14em;
+    text-transform:uppercase; font-weight:700; color:var(--green);
+    background:rgba(74,222,128,.12); border:1px solid rgba(74,222,128,.3);
+    padding:6px 14px; border-radius:999px; margin-bottom:20px;
+  }
+  .hero h1{
+    font-size:clamp(1.7rem,5vw,2.6rem); line-height:1.2;
+    font-weight:800; letter-spacing:-.02em; margin-bottom:14px;
+    background:linear-gradient(135deg,#ffffff,#8de0ab 60%,#fbbf24);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero p.sub{ color:var(--muted); font-size:1.02rem; max-width:560px; margin:0 auto 28px; }
+  .rules{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin:0 0 28px; text-align:left; }
+  .rule{ background:var(--panel-2); border:1px solid var(--border); border-radius:14px; padding:14px; font-size:.86rem; color:var(--muted); }
+  .rule b{display:block;color:var(--text);font-size:.92rem;margin-bottom:4px;}
+  .btn{ font-family:inherit; font-size:1rem; font-weight:700; border:none; border-radius:14px; padding:16px 32px; cursor:pointer; transition:transform .16s ease,box-shadow .16s ease,background .16s; letter-spacing:.01em; }
+  .btn-primary{ background:linear-gradient(135deg,#4ade80,#22c55e); color:#06210f; box-shadow:0 8px 26px -8px rgba(74,222,128,.75); }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 14px 32px -8px rgba(74,222,128,.9);}
+  .btn-primary:active{transform:translateY(0);}
+  .mode-toggle{
+    display:inline-flex; align-items:center; gap:10px; margin-bottom:26px;
+    font-size:.88rem; color:var(--muted); cursor:pointer; user-select:none;
+    background:var(--panel-2); border:1px solid var(--border);
+    padding:10px 18px; border-radius:999px; transition:.2s;
+  }
+  .mode-toggle:hover{border-color:rgba(74,222,128,.4);}
+  .mode-toggle input{accent-color:#4ade80;width:17px;height:17px;cursor:pointer;}
+  .hud{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:18px; }
+  .stat{ background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:11px 13px; transition:.3s; }
+  .stat.pulse{animation:pulse .7s ease;}
+  @keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(255,255,255,.28);} 100%{box-shadow:0 0 0 14px rgba(255,255,255,0);} }
+  .stat-top{ display:flex;align-items:center;justify-content:space-between; gap:6px;margin-bottom:7px; }
+  .stat-name{ font-size:.66rem;text-transform:uppercase;letter-spacing:.07em; color:var(--muted);font-weight:700; white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .stat-val{font-size:.82rem;font-weight:800;font-variant-numeric:tabular-nums;}
+  .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden;}
+  .bar-fill{height:100%;border-radius:99px;transition:width .65s cubic-bezier(.4,0,.2,1),background .4s;}
+  .meta-row{ display:flex;align-items:center;justify-content:space-between; gap:12px;margin-bottom:16px;font-size:.82rem;color:var(--muted); }
+  .progress-track{ flex:1;height:5px;background:rgba(255,255,255,.09); border-radius:99px;overflow:hidden; }
+  .progress-fill{ height:100%;width:0;border-radius:99px; background:linear-gradient(90deg,#4ade80,#fbbf24); transition:width .5s ease; }
+  .timer{ display:none;align-items:center;gap:7px; font-weight:800;font-variant-numeric:tabular-nums; color:var(--green);font-size:.9rem; background:var(--panel-2);border:1px solid var(--border); padding:5px 13px;border-radius:99px; }
+  .timer.warn{color:var(--red);border-color:rgba(248,113,113,.45);animation:blink 1s infinite;}
+  @keyframes blink{50%{opacity:.45;}}
+  .card{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:26px 24px; backdrop-filter:blur(12px); }
+  .card-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px;}
+  .card-icon{ font-size:1.9rem;line-height:1; background:rgba(255,255,255,.07); border:1px solid var(--border); border-radius:14px; width:56px;height:56px; display:grid;place-items:center;flex-shrink:0; }
+  .card h2{font-size:1.22rem;line-height:1.3;font-weight:800;letter-spacing:-.01em;margin-top:2px;}
+  .badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:3px;}
+  .badge-pill{
+    display:inline-block; font-size:.62rem; text-transform:uppercase;
+    letter-spacing:.08em; font-weight:800; padding:3px 10px; border-radius:99px;
+    border:1px solid;
+  }
+  .phase-badge{ color:var(--blue); background:rgba(96,165,250,.14); border-color:rgba(96,165,250,.4); }
+  .tag{ color:var(--amber); background:rgba(251,191,36,.1); border-color:rgba(251,191,36,.3); }
+  .desc{ color:#c8d8cd;font-size:.96rem; border-left:3px solid rgba(251,191,36,.55); padding-left:14px;margin-bottom:22px; }
+  .choices{display:flex;flex-direction:column;gap:10px;}
+  .choice{ display:flex;gap:13px;align-items:flex-start;text-align:left; width:100%;font-family:inherit;font-size:.94rem;color:var(--text); background:var(--panel-2); border:1px solid var(--border); border-radius:14px; padding:14px 16px; cursor:pointer; transition:.18s; }
+  .choice:hover:not(:disabled){ background:rgba(74,222,128,.1); border-color:rgba(74,222,128,.45); transform:translateX(4px); }
+  .choice:disabled{cursor:default;opacity:.42;}
+  .choice.chosen{opacity:1;border-color:rgba(96,165,250,.65);background:rgba(96,165,250,.12);}
+  .choice.correct{opacity:1;border-color:rgba(74,222,128,.7);background:rgba(74,222,128,.12);}
+  .choice-letter{ flex-shrink:0;width:25px;height:25px;border-radius:8px; display:grid;place-items:center; background:rgba(255,255,255,.11); font-size:.76rem;font-weight:800;margin-top:1px; }
+  .feedback{ margin-top:18px;border-radius:16px;padding:18px; border:1px solid var(--border); animation:fade .35s ease; }
+  .feedback.good{background:rgba(74,222,128,.1);border-color:rgba(74,222,128,.4);}
+  .feedback.neutral{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.4);}
+  .feedback.bad{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.4);}
+  .fb-title{font-weight:800;font-size:.95rem;margin-bottom:7px;display:flex;align-items:center;gap:8px;}
+  .feedback.good .fb-title{color:var(--green);}
+  .feedback.neutral .fb-title{color:var(--amber);}
+  .feedback.bad .fb-title{color:var(--red);}
+  .fb-text{font-size:.9rem;color:#c8d8cd;}
+  .deltas{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px;}
+  .delta{ font-size:.76rem;font-weight:800;padding:4px 11px;border-radius:99px; background:rgba(255,255,255,.08);border:1px solid var(--border); font-variant-numeric:tabular-nums; }
+  .delta.up{color:var(--green);border-color:rgba(74,222,128,.35);}
+  .delta.down{color:var(--red);border-color:rgba(248,113,113,.35);}
+  .actions{margin-top:20px;display:flex;justify-content:flex-end;}
+  .result-head{text-align:center;margin-bottom:28px;}
+  .grade-circle{ width:118px;height:118px;border-radius:50%; display:grid;place-items:center;margin:0 auto 18px; font-size:2.6rem;font-weight:900; border:3px solid; animation:pop .5s cubic-bezier(.34,1.56,.64,1); }
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  .result-head h2{font-size:1.55rem;font-weight:800;margin-bottom:6px;}
+  .result-head p{color:var(--muted);font-size:.94rem;}
+  .summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:24px;}
+  .sum-item{ background:var(--panel-2);border:1px solid var(--border); border-radius:14px;padding:13px 15px; }
+  .sum-item .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;}
+  .sum-item .val{font-size:1.35rem;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px;}
+  .section-title{ font-size:.72rem;text-transform:uppercase;letter-spacing:.11em; color:var(--muted);font-weight:800;margin-bottom:12px; }
+  .log{display:flex;flex-direction:column;gap:8px;margin-bottom:24px;}
+  .log-item{ display:flex;gap:11px;align-items:flex-start; background:var(--panel-2);border:1px solid var(--border); border-radius:12px;padding:11px 14px;font-size:.86rem; }
+  .log-item .dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex-shrink:0;}
+  .dot.good{background:var(--green);box-shadow:0 0 10px rgba(74,222,128,.7);}
+  .dot.neutral{background:var(--amber);box-shadow:0 0 10px rgba(251,191,36,.7);}
+  .dot.bad{background:var(--red);box-shadow:0 0 10px rgba(248,113,113,.7);}
+  .log-item b{color:#fff;font-weight:700;}
+  .log-item span{color:var(--muted);}
+  .tip-box{ background:rgba(96,165,250,.1); border:1px solid rgba(96,165,250,.35); border-radius:14px;padding:16px 18px; font-size:.9rem;color:#cfe0f5;margin-bottom:24px; }
+  .tip-box b{color:var(--blue);display:block;margin-bottom:5px;}
+  .center{text-align:center;}
+  .div-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:24px;}
+  .div-item{ background:var(--panel-2);border:1px solid var(--border); border-radius:12px;padding:10px 13px;font-size:.8rem; }
+  .div-item b{display:block;font-size:.9rem;margin-bottom:3px;}
+  @media(max-width:640px){
+    body{padding:14px 11px 30px;}
+    .hud{grid-template-columns:repeat(2,1fr);}
+    .card{padding:20px 17px;border-radius:17px;}
+    .hero{padding:34px 18px 30px;}
+    .card-icon{width:48px;height:48px;font-size:1.6rem;}
+    .card h2{font-size:1.06rem;}
+    .choice{font-size:.89rem;padding:13px 14px;}
+    .btn{padding:15px 26px;font-size:.95rem;}
+    .actions .btn{width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <section id="screen-intro" class="screen active">
+    <div class="hero">
+      <div class="badge">Simulasi Interaktif</div>
+      <h1>Krisis di Bumi Perkemahan</h1>
+      <p class="sub">
+        Kamu adalah <b>Ketua Panitia Kemah SMP</b>. Kamu memimpin <b>6 divisi</b> —
+        Acara & Games, Kesehatan, Pembimbing Kelompok, Konsumsi, Logistik, dan
+        Pembantu Umum — dari pemberangkatan hingga pulang ke sekolah.
+      </p>
+
+      <div class="rules">
+        <div class="rule"><b>🛡️ 4 Indikator</b>Keselamatan, kondisi peserta, moral, dan logistik harus tetap terjaga.</div>
+        <div class="rule"><b>🎯 33 Skenario</b>Semua dimainkan berurutan dari pemberangkatan hingga kepulangan.</div>
+        <div class="rule"><b>👥 6 Divisi</b>Setiap skenario menandai divisi yang bertanggung jawab.</div>
+        <div class="rule"><b>⚖️ Tanpa Jawaban Sempurna</b>Setiap pilihan punya konsekuensi. Pilih yang paling kecil risikonya.</div>
+      </div>
+
+      <label class="mode-toggle">
+        <input type="checkbox" id="challenge-mode">
+        Mode Tantangan — batas 30 detik per keputusan
+      </label>
+
+      <div>
+        <button class="btn btn-primary" id="btn-start">Mulai Simulasi</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-game" class="screen">
+    <div class="hud" id="hud"></div>
+
+    <div class="meta-row">
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      <span id="progress-text">1 / 33</span>
+      <span class="timer" id="timer">⏱ <span id="timer-num">30</span>s</span>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon" id="scenario-icon">⚠️</div>
+        <div style="min-width:0;">
+          <div class="badges">
+            <span class="badge-pill phase-badge" id="scenario-phase">Fase</span>
+            <span class="badge-pill" id="scenario-division">Divisi</span>
+            <span class="badge-pill tag" id="scenario-tag">Kategori</span>
+          </div>
+          <h2 id="scenario-title">Judul</h2>
+        </div>
+      </div>
+      <p class="desc" id="scenario-desc"></p>
+      <div class="choices" id="choices"></div>
+      <div id="feedback-slot"></div>
+      <div class="actions" id="actions" style="display:none;">
+        <button class="btn btn-primary" id="btn-next">Lanjut →</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-end" class="screen">
+    <div class="card">
+      <div class="result-head">
+        <div class="grade-circle" id="grade-circle">A</div>
+        <h2 id="grade-title">Panitia Teladan</h2>
+        <p id="grade-desc"></p>
+      </div>
+
+      <div class="summary" id="summary"></div>
+
+      <div class="section-title">Performa Per Divisi</div>
+      <div class="div-summary" id="div-summary"></div>
+
+      <div class="tip-box" id="tip-box"></div>
+
+      <div class="section-title">Rekap Keputusanmu</div>
+      <div class="log" id="log"></div>
+
+      <div class="center">
+        <button class="btn btn-primary" id="btn-restart">🔄 Main Lagi</button>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* =========================================================
+   DIVISI PANITIA
+   ========================================================= */
+const DIVISIONS = {
+  'Acara & Games':       { color:'#c084fc', bg:'rgba(192,132,252,.14)', border:'rgba(192,132,252,.45)', icon:'🎬' },
+  'Kesehatan':           { color:'#f87171', bg:'rgba(248,113,113,.14)', border:'rgba(248,113,113,.45)', icon:'🩺' },
+  'Pembimbing Kelompok': { color:'#4ade80', bg:'rgba(74,222,128,.14)',  border:'rgba(74,222,128,.45)',  icon:'👥' },
+  'Konsumsi':            { color:'#fbbf24', bg:'rgba(251,191,36,.14)',  border:'rgba(251,191,36,.45)',  icon:'🍽️' },
+  'Logistik':            { color:'#60a5fa', bg:'rgba(96,165,250,.14)',  border:'rgba(96,165,250,.45)',  icon:'📦' },
+  'Pembantu Umum':       { color:'#a3a3a3', bg:'rgba(163,163,163,.14)', border:'rgba(163,163,163,.45)', icon:'🧹' }
+};
+
+/* =========================================================
+   SEMUA 33 SKENARIO — URUT, TIDAK DIACAK
+   ========================================================= */
+const SCENARIOS = [
+
+  /* ================= FASE 1: PEMBERANGKATAN ================= */
+  {
+    phase:'Pemberangkatan', division:'Pembimbing Kelompok', icon:'📋', tag:'Administrasi',
+    title:'Peserta Belum Lengkap Saat Keberangkatan',
+    desc:'Bus sudah siap dan jadwal berangkat pukul 07.00. Namun saat absensi, 4 peserta belum tiba dan orang tuanya tidak bisa dihubungi. Peserta lain sudah duduk di bus.',
+    choices:[
+      { text:'Tunda keberangkatan, hubungi orang tua/wali dan pembina, pastikan semua jelas terlebih dahulu.',
+        effects:{safety:+8,health:+4,morale:+6,resources:-3}, quality:'good',
+        feedback:'Tepat! Keselamatan dan akuntabilitas peserta adalah prioritas. Keberangkatan yang terburu-buru tanpa data lengkap berisiko membuat peserta hilang dari pengawasan.' },
+      { text:'Berangkat saja, 4 orang itu bisa menyusul dengan kendaraan sendiri.',
+        effects:{safety:-11,health:-6,morale:-5,resources:+2}, quality:'bad',
+        feedback:'Berisiko. Peserta yang menyusul sendiri tanpa pendamping berpotensi tersesat atau celaka di jalan. Semua peserta harus berangkat bersama di bawah pengawasan panitia.' },
+      { text:'Tunggu 10 menit lalu berangkat tanpa konfirmasi apa pun.',
+        effects:{safety:-9,health:-4,morale:-7}, quality:'bad',
+        feedback:'Kurang tepat. Meninggalkan peserta tanpa kepastian bisa menimbulkan masalah hukum dan keselamatan.' }
+    ]
+  },
+  {
+    phase:'Pemberangkatan', division:'Pembimbing Kelompok', icon:'📄', tag:'Administrasi',
+    title:'Surat Izin Orang Tua Belum Lengkap',
+    desc:'Saat pengecekan berkas, 3 surat izin belum ditandatangani orang tua. Peserta tetap ingin ikut berangkat dan bus sudah siap.',
+    choices:[
+      { text:'Jangan izinkan berangkat sampai surat lengkap, hubungi orang tua/wali segera.',
+        effects:{safety:+9,health:+3,morale:-3,resources:-2}, quality:'good',
+        feedback:'Tepat! Surat izin adalah dasar legal dan tanggung jawab. Tanpa itu, panitia menanggung risiko hukum yang besar jika terjadi sesuatu.' },
+      { text:'Izinkan berangkat, surat bisa dilengkapi nanti saat pulang.',
+        effects:{safety:-10,health:-4,morale:+2}, quality:'bad',
+        feedback:'Sangat berisiko. Jika terjadi kecelakaan, tidak ada dasar izin dari orang tua.' },
+      { text:'Izinkan berangkat dengan catatan tertulis dari guru pendamping.',
+        effects:{safety:+3,health:+2,morale:+2,resources:-2}, quality:'neutral',
+        feedback:'Boleh sebagai solusi sementara, tetapi surat resmi orang tua tetap wajib.' }
+    ]
+  },
+  {
+    phase:'Pemberangkatan', division:'Kesehatan', icon:'🩺', tag:'Kesehatan',
+    title:'Riwayat Penyakit Peserta Tidak Dilaporkan',
+    desc:'Saat briefing, seorang peserta mengaku punya asma dan tidak membawa inhaler. Orang tuanya tidak melaporkan kondisi ini ke panitia.',
+    choices:[
+      { text:'Catat kondisi, hubungi orang tua minta antar inhaler, pastikan peserta selalu didampingi.',
+        effects:{safety:+11,health:+10,morale:+4,resources:-4}, quality:'good',
+        feedback:'Sangat tepat! Riwayat kesehatan wajib diketahui panitia. Inhaler adalah alat bantu hidup bagi penderita asma dan harus selalu tersedia.' },
+      { text:'Biarkan saja karena tidak pernah kambuh selama ini.',
+        effects:{safety:-13,health:-14,morale:-3}, quality:'bad',
+        feedback:'Sangat berbahaya. Serangan asma bisa dipicu cuaca dingin, debu, atau aktivitas fisik. Tanpa inhaler, kondisi bisa mengancam nyawa.' },
+      { text:'Larang peserta ikut karena berisiko tinggi.',
+        effects:{safety:+6,health:+5,morale:-8,resources:-2}, quality:'neutral',
+        feedback:'Terlalu ekstrem. Dengan persiapan dan pengawasan yang tepat, peserta asma tetap bisa ikut.' }
+    ]
+  },
+  {
+    phase:'Pemberangkatan', division:'Pembantu Umum', icon:'📱', tag:'Kedisiplinan',
+    title:'Peserta Membawa HP dan Barang Terlarang',
+    desc:'Saat pemeriksaan barang, ditemukan banyak peserta membawa HP, power bank, dan satu membawa pisau lipat. Padahal aturan kegiatan jelas melarangnya.',
+    choices:[
+      { text:'Kumpulkan dan titipkan di sekolah dengan catatan, lalu edukasi alasannya dengan sabar.',
+        effects:{safety:+7,health:+2,morale:+6,resources:-3}, quality:'good',
+        feedback:'Baik! Menitipkan barang lebih baik daripada menyita permanen. Edukasi alasannya membantu peserta memahami aturan, bukan sekadar mematuhinya karena takut.' },
+      { text:'Sita dan buang di depan peserta agar kapok.',
+        effects:{safety:-3,health:-2,morale:-13,resources:+2}, quality:'bad',
+        feedback:'Kurang bijak. Merusak barang peserta bisa menimbulkan masalah dengan orang tua.' },
+      { text:'Biarkan saja karena tidak berbahaya.',
+        effects:{safety:-8,health:-4,morale:-5}, quality:'bad',
+        feedback:'Berisiko. HP mengganggu fokus kegiatan, dan benda tajam sangat berbahaya di tangan anak SMP.' }
+    ]
+  },
+  {
+    phase:'Pemberangkatan', division:'Acara & Games', icon:'📢', tag:'Kesiapan',
+    title:'Peserta Tidak Fokus Saat Briefing',
+    desc:'Saat briefing pemberangkatan di sekolah, peserta sibuk mengobrol, main HP, dan tidak memperhatikan instruksi keselamatan yang disampaikan panitia.',
+    choices:[
+      { text:'Ulangi briefing dengan cara interaktif: tanya jawab, permainan singkat, dan demonstrasi.',
+        effects:{safety:+8,health:+4,morale:+8,resources:-2}, quality:'good',
+        feedback:'Tepat! Peserta SMP lebih mudah menyerap informasi lewat aktivitas interaktif. Briefing yang hidup membuat instruksi keselamatan benar-benar diingat.' },
+      { text:'Lanjutkan briefing, tanggung jawab sendiri jika terjadi masalah di lapangan.',
+        effects:{safety:-9,health:-5,morale:-7}, quality:'bad',
+        feedback:'Kurang bertanggung jawab. Panitia wajib memastikan informasi tersampaikan, bukan sekadar menyampaikannya.' },
+      { text:'Marahi peserta agar diam dan memperhatikan.',
+        effects:{safety:+2,health:+1,morale:-11}, quality:'bad',
+        feedback:'Kurang efektif. Marah mungkin membuat mereka diam, tapi tidak membuat mereka paham.' }
+    ]
+  },
+
+  /* ================= FASE 2: PERJALANAN ================= */
+  {
+    phase:'Perjalanan', division:'Kesehatan', icon:'🤢', tag:'Kesehatan',
+    title:'Peserta Mabuk Perjalanan Massal',
+    desc:'Di tengah perjalanan, 7 peserta mual dan muntah di bus. Bau menyengat membuat peserta lain ikut mual. Bus masih 2 jam dari tujuan.',
+    choices:[
+      { text:'Berhenti di tempat aman, beri obat mabuk, bersihkan, atur posisi duduk, beri udara segar.',
+        effects:{safety:+8,health:+10,morale:+6,resources:-4}, quality:'good',
+        feedback:'Tepat! Berhenti sejenak di tempat aman mencegah kondisi memburuk. Posisi duduk di depan dan udara segar membantu peserta pulih lebih cepat.' },
+      { text:'Lanjutkan perjalanan karena sebentar lagi sampai.',
+        effects:{safety:-6,health:-11,morale:-9}, quality:'bad',
+        feedback:'Kurang tepat. Peserta yang terus muntah berisiko dehidrasi. Bau di dalam bus juga memperparah kondisi peserta lain.' },
+      { text:'Suruh mereka tidur saja sampai tiba di tujuan.',
+        effects:{safety:-4,health:-9,morale:-7}, quality:'bad',
+        feedback:'Kurang membantu. Mabuk perjalanan butuh penanganan aktif: udara segar, posisi nyaman, dan obat.' }
+    ]
+  },
+  {
+    phase:'Perjalanan', division:'Pembantu Umum', icon:'🚌', tag:'Transportasi',
+    title:'Bus Mogok di Tengah Jalan',
+    desc:'Bus mogok di jalan desa yang sepi, 3 jam dari lokasi. Sopir menduga masalah mesin. Hari mulai gelap dan peserta mulai gelisah.',
+    choices:[
+      { text:'Pastikan keamanan, hubungi pembina & vendor bus, cari alternatif transport, jaga peserta tetap tenang.',
+        effects:{safety:+11,health:+6,morale:+7,resources:-8}, quality:'good',
+        feedback:'Sangat tepat! Koordinasi dan ketenangan panitia adalah kunci. Jangan biarkan peserta turun ke jalan yang gelap dan berbahaya.' },
+      { text:'Turunkan peserta ke jalan dan tunggu sampai bus diperbaiki.',
+        effects:{safety:-12,health:-8,morale:-9}, quality:'bad',
+        feedback:'Sangat berbahaya! Jalan desa yang gelap dan sepi berisiko kecelakaan.' },
+      { text:'Panik dan salahkan sopir di depan peserta.',
+        effects:{safety:-6,health:-3,morale:-11}, quality:'bad',
+        feedback:'Kurang bijak. Menyalahkan sopir di depan peserta menambah kepanikan dan tidak menyelesaikan masalah.' }
+    ]
+  },
+  {
+    phase:'Perjalanan', division:'Pembimbing Kelompok', icon:'🚻', tag:'Keselamatan Peserta',
+    title:'Peserta Tertinggal di Rest Area',
+    desc:'Setelah istirahat di rest area, bus berangkat. 20 menit kemudian, satu peserta menelepon: ia tertinggal dan sendirian di rest area.',
+    choices:[
+      { text:'Minta sopir berhenti di tempat aman, koordinasi dengan pengelola rest area, kembali atau minta bantuan pihak lain.',
+        effects:{safety:+12,health:+6,morale:+5,resources:-5}, quality:'good',
+        feedback:'Tepat! Koordinasi dengan pengelola rest area memastikan peserta dalam pengawasan. Jangan biarkan peserta sendirian di tempat umum.' },
+      { text:'Suruh peserta naik taksi sendiri menyusul.',
+        effects:{safety:-11,health:-4,morale:-6,resources:-4}, quality:'bad',
+        feedback:'Berisiko. Peserta SMP naik taksi sendirian di tempat asing sangat berbahaya.' },
+      { text:'Lanjutkan perjalanan, nanti dipikirkan saat sampai.',
+        effects:{safety:-14,health:-8,morale:-9}, quality:'bad',
+        feedback:'Sangat berbahaya! Meninggalkan peserta sendirian adalah pelanggaran serius.' }
+    ]
+  },
+  {
+    phase:'Perjalanan', division:'Pembantu Umum', icon:'🚨', tag:'Keselamatan',
+    title:'Sopir Bus Mengantuk dan Ugal-ugalan',
+    desc:'Di perjalanan, sopir bus terlihat mengantuk dan beberapa kali menyalip berbahaya. Peserta mulai panik dan berteriak.',
+    choices:[
+      { text:'Tegur sopir dengan sopan, minta berhenti untuk istirahat, hubungi vendor bus.',
+        effects:{safety:+12,health:+6,morale:+6,resources:-5}, quality:'good',
+        feedback:'Sangat tepat! Keselamatan adalah prioritas. Sopir mengantuk sangat berbahaya. Vendor bus wajib menyediakan sopir cadangan atau istirahat cukup.' },
+      { text:'Diam saja agar tidak menyinggung perasaan sopir.',
+        effects:{safety:-14,health:-8,morale:-6}, quality:'bad',
+        feedback:'Sangat berbahaya! Diam berarti membiarkan risiko kecelakaan.' },
+      { text:'Teriak-teriak panik dan minta turun di jalan.',
+        effects:{safety:-6,health:-3,morale:-9}, quality:'bad',
+        feedback:'Kurang tepat. Panik bisa mengganggu konsentrasi sopir.' }
+    ]
+  },
+
+  /* ================= FASE 3: TIBA DI LOKASI ================= */
+  {
+    phase:'Tiba di Lokasi', division:'Logistik', icon:'🌊', tag:'Lokasi',
+    title:'Lokasi Perkemahan Becek dan Berisiko Banjir',
+    desc:'Setelah tiba, ternyata lokasi becek parah, beberapa titik tergenang, dan menurut warga area itu langganan banjir jika hujan deras.',
+    choices:[
+      { text:'Evaluasi bersama pembina, cari lokasi alternatif aman atau naikkan tenda di area lebih tinggi.',
+        effects:{safety:+12,health:+8,morale:+4,resources:-8}, quality:'good',
+        feedback:'Tepat! Lokasi adalah fondasi keselamatan. Lebih baik mengorbankan waktu dan biaya daripada mempertaruhkan keselamatan peserta.' },
+      { text:'Tetap mendirikan tenda di lokasi karena sudah membayar sewa.',
+        effects:{safety:-13,health:-10,morale:-7}, quality:'bad',
+        feedback:'Sangat berisiko. Uang sewa tidak sebanding dengan keselamatan.' },
+      { text:'Pindah ke lokasi lain tanpa izin dan persiapan.',
+        effects:{safety:-7,health:-5,morale:-9,resources:-6}, quality:'bad',
+        feedback:'Kurang bijak. Pindah lokasi tanpa izin bisa menimbulkan masalah dengan pemilik lahan.' }
+    ]
+  },
+  {
+    phase:'Tiba di Lokasi', division:'Logistik', icon:'⛺', tag:'Perlengkapan',
+    title:'Tenda Kurang dan Beberapa Rusak',
+    desc:'Setelah dihitung, tenda yang tersedia kurang 3 unit untuk jumlah peserta, dan 2 tenda sobek. Hari mulai gelap.',
+    choices:[
+      { text:'Koordinasi dengan pembina, pinjam dari warga/sekolah terdekat, prioritaskan peserta termuda.',
+        effects:{safety:+9,health:+7,morale:+8,resources:-7}, quality:'good',
+        feedback:'Tepat! Kolaborasi dengan warga sekitar adalah solusi cepat. Prioritaskan peserta kelas 7 yang lebih rentan.' },
+      { text:'Buat peserta berdesakan agar semua kebagian tenda.',
+        effects:{safety:-5,health:-7,morale:-8}, quality:'bad',
+        feedback:'Kurang bijak. Berdesakan mengurangi kualitas tidur dan memicu konflik.' },
+      { text:'Biarkan beberapa peserta tidur di aula terbuka.',
+        effects:{safety:-8,health:-9,morale:-5}, quality:'bad',
+        feedback:'Berisiko. Aula terbuka tidak aman dari cuaca dan binatang.' }
+    ]
+  },
+  {
+    phase:'Tiba di Lokasi', division:'Kesehatan', icon:'🔨', tag:'Cedera',
+    title:'Peserta Cedera Saat Mendirikan Tenda',
+    desc:'Seorang peserta terluka di tangannya saat memasang paku tenda. Darah keluar cukup banyak dan ia menangis kesakitan.',
+    choices:[
+      { text:'Hentikan kegiatan, bersihkan luka, beri antiseptik dan perban, rujuk jika perlu.',
+        effects:{safety:+10,health:+12,morale:+5,resources:-3}, quality:'good',
+        feedback:'Tepat! P3K cepat mencegah infeksi. Jika luka dalam atau darah tidak berhenti, segera rujuk.' },
+      { text:'Bilang "tidak apa-apa" dan suruh lanjut mendirikan tenda.',
+        effects:{safety:-9,health:-11,morale:-6}, quality:'bad',
+        feedback:'Berisiko. Luka terbuka rentan infeksi, apalagi di lingkungan berdebu.' },
+      { text:'Panik dan bawa langsung ke RS tanpa P3K.',
+        effects:{safety:+5,health:+5,morale:-3,resources:-8}, quality:'neutral',
+        feedback:'Tidak salah, tetapi P3K awal sangat penting untuk menghentikan pendarahan.' }
+    ]
+  },
+  {
+    phase:'Tiba di Lokasi', division:'Acara & Games', icon:'🎭', tag:'Dinamika Peserta',
+    title:'Peserta Tidak Antusias di Pembukaan',
+    desc:'Kegiatan pembukaan baru dimulai, tetapi peserta terlihat lesu. Banyak yang asyik bermain HP, mengobrol sendiri, dan tidak mengikuti instruksi panitia.',
+    choices:[
+      { text:'Ubah format: ajak peserta berdiri, lakukan ice breaking cepat 5 menit, lalu lanjutkan.',
+        effects:{safety:+2,health:+3,morale:+12,resources:-3}, quality:'good',
+        feedback:'Tepat! Ice breaking singkat mencairkan suasana dan mengembalikan fokus.' },
+      { text:'Marahi peserta dan ancam memberi hukuman agar tertib.',
+        effects:{safety:0,health:-2,morale:-12}, quality:'bad',
+        feedback:'Kurang bijak. Memarahi di depan umum hanya menambah jarak antara panitia dan peserta.' },
+      { text:'Biarkan saja, nanti juga akan antusias sendiri saat kegiatan inti dimulai.',
+        effects:{safety:-3,health:-2,morale:-8}, quality:'bad',
+        feedback:'Berisiko. Peserta yang sejak awal tidak terlibat cenderung menarik diri sepanjang kegiatan.' }
+    ]
+  },
+
+  /* ================= FASE 4: KEGIATAN ================= */
+  {
+    phase:'Kegiatan', division:'Kesehatan', icon:'🏃', tag:'Cedera',
+    title:'Peserta Cedera Saat Outbound',
+    desc:'Saat lomba estafet, seorang peserta terkilir pergelangan kakinya. Kakinya mulai bengkak dan ia tidak bisa berdiri.',
+    choices:[
+      { text:'Hentikan kegiatan, istirahatkan, kompres es, imobilisasi, rujuk jika perlu.',
+        effects:{safety:+10,health:+12,morale:+4,resources:-4}, quality:'good',
+        feedback:'Tepat! RICE (Rest, Ice, Compression, Elevation) adalah penanganan standar cedera. Jangan urut atau paksa jalan.' },
+      { text:'Paksa lanjut karena masih bisa jalan sedikit-sedikit.',
+        effects:{safety:-8,health:-13,morale:-5}, quality:'bad',
+        feedback:'Berisiko. Memaksa berjalan bisa memperparah cedera ligamen.' },
+      { text:'Urut dengan keras agar cepat sembuh.',
+        effects:{safety:-11,health:-14,morale:-3}, quality:'bad',
+        feedback:'Sangat berbahaya! Mengurut cedera baru bisa memperparah pembengkakan.' }
+    ]
+  },
+  {
+    phase:'Kegiatan', division:'Pembimbing Kelompok', icon:'🧭', tag:'Peserta Hilang',
+    title:'Peserta Tidak Kembali dari Jelajah Alam',
+    desc:'Kegiatan jelajah alam selesai, tetapi satu peserta (Doni, kelas 7) tidak kembali ke titik kumpul. Sudah 40 menit berlalu dan teleponnya tidak aktif.',
+    choices:[
+      { text:'Aktifkan protokol SAR: bentuk 3 tim pencari, catat rute terakhir, hubungi pembina dan perangkat desa.',
+        effects:{safety:+15,health:+5,morale:-5,resources:-10}, quality:'good',
+        feedback:'Sangat tepat. Pencarian terstruktur jauh lebih efektif. Mencatat rute terakhir dan melibatkan warga lokal adalah prosedur standar.' },
+      { text:'Cari sendiri karena kamu paling hafal medan.',
+        effects:{safety:-11,health:0,morale:-6,resources:-5}, quality:'bad',
+        feedback:'Berisiko. Mencari sendirian bisa membuatmu jadi korban kedua.' },
+      { text:'Kerahkan seluruh peserta untuk menyebar mencari.',
+        effects:{safety:-13,health:-6,morale:-11,resources:-3}, quality:'bad',
+        feedback:'Tidak efektif dan membahayakan banyak orang. Gunakan tim terlatih.' }
+    ]
+  },
+  {
+    phase:'Kegiatan', division:'Pembantu Umum', icon:'🔥', tag:'Kebakaran',
+    title:'Api Unggun Merembet ke Rumput Kering',
+    desc:'Saat acara api unggun, percikan api menyambar rumput kering. Angin cukup kencang dan api mulai menjalar ke arah tenda.',
+    choices:[
+      { text:'Evakuasi peserta menjauh lebih dulu, lalu padamkan dengan karung basah dari sisi berlawanan arah angin.',
+        effects:{safety:+15,health:+6,morale:-5,resources:-10}, quality:'good',
+        feedback:'Sangat tepat! Evakuasi dulu, baru pemadaman. Memadamkan dari sisi berlawanan arah angin mencegah api mengepung.' },
+      { text:'Siram seluruh area dengan air sebanyak mungkin.',
+        effects:{safety:+4,health:0,morale:-5,resources:-11}, quality:'neutral',
+        feedback:'Boleh, tapi kurang efisien jika air terbatas.' },
+      { text:'Lanjutkan acara karena api masih kecil dan bisa diinjak.',
+        effects:{safety:-16,health:-11,morale:-6}, quality:'bad',
+        feedback:'Sangat berbahaya! Dengan angin kencang, api bisa menyebar dalam hitungan detik.' }
+    ]
+  },
+  {
+    phase:'Kegiatan', division:'Konsumsi', icon:'🍲', tag:'Darurat Medis',
+    title:'Keracunan Makanan Massal',
+    desc:'Setelah makan malam, 8 peserta mengeluh mual, muntah, dan diare. Tiga di antaranya tampak sangat lemas dan tidak bisa berdiri.',
+    choices:[
+      { text:'Bawa segera ke puskesmas, simpan sampel makanan, laporkan ke pembina dan puskesmas.',
+        effects:{safety:+15,health:+16,morale:-5,resources:-10}, quality:'good',
+        feedback:'Tepat! Penanganan medis cepat adalah kunci. Sampel makanan penting untuk menelusuri penyebab.' },
+      { text:'Beri banyak air minum dan istirahatkan korban di tenda.',
+        effects:{safety:-9,health:-11}, quality:'bad',
+        feedback:'Kurang tepat. Muntah dan diare berulang dapat menyebabkan dehidrasi berat.' },
+      { text:'Bubarkan acara dan pulangkan seluruh peserta malam ini juga.',
+        effects:{safety:+5,health:+5,morale:-15,resources:-10}, quality:'neutral',
+        feedback:'Terlalu terburu-buru. Tangani korban lebih dulu, lalu evaluasi bersama pembina.' }
+    ]
+  },
+  {
+    phase:'Kegiatan', division:'Kesehatan', icon:'💧', tag:'Darurat Medis',
+    title:'Peserta Pingsan karena Dehidrasi',
+    desc:'Seorang peserta pingsan saat outbound. Kulitnya pucat, berkeringat dingin, dan napasnya lemah. Suhu siang itu 35°C.',
+    choices:[
+      { text:'Baringkan dengan kaki ditinggikan, longgarkan pakaian, beri oralit, panggil tim P3K.',
+        effects:{safety:+12,health:+16,morale:+4,resources:-5}, quality:'good',
+        feedback:'Tepat! Posisi berbaring dengan kaki ditinggikan membantu aliran darah ke otak. Oralit mengatasi dehidrasi.' },
+      { text:'Suruh ia duduk dan minum air putih sebanyak mungkin.',
+        effects:{safety:-6,health:-6}, quality:'bad',
+        feedback:'Kurang tepat. Peserta yang pingsan sebaiknya dibaringkan.' },
+      { text:'Langsung bawa ke RS tanpa pertolongan pertama.',
+        effects:{safety:+5,health:+5,morale:-5,resources:-11}, quality:'neutral',
+        feedback:'Tidak salah, tapi P3K awal sangat penting sebelum transportasi.' }
+    ]
+  },
+  {
+    phase:'Kegiatan', division:'Logistik', icon:'📦', tag:'Logistik',
+    title:'Bahan Bakar dan Air Bersih Habis',
+    desc:'Gas untuk memasak habis dan stok air bersih tinggal beberapa liter. Sarapan untuk 120 peserta terancam tidak tersedia.',
+    choices:[
+      { text:'Koordinasi dengan pembina, minta bantuan dari warga desa, susun menu darurat.',
+        effects:{safety:+5,health:+6,morale:+6,resources:+12}, quality:'good',
+        feedback:'Tepat! Kolaborasi dengan warga dan pembina adalah solusi paling realistis.' },
+      { text:'Kurangi porsi makan peserta menjadi setengah.',
+        effects:{safety:0,health:-6,morale:-11,resources:+6}, quality:'neutral',
+        feedback:'Kurang bijak. Peserta yang kekurangan asupan akan lemas saat kegiatan.' },
+      { text:'Panik dan batalkan seluruh jadwal makan pagi.',
+        effects:{safety:-6,health:-11,morale:-16}, quality:'bad',
+        feedback:'Sangat merugikan. Panitia harus tetap tenang dan mencari solusi.' }
+    ]
+  },
+  {
+    phase:'Kegiatan', division:'Kesehatan', icon:'🌊', tag:'Keselamatan Air',
+    title:'Peserta Hampir Tenggelam di Sungai',
+    desc:'Saat susur sungai, seorang peserta terpeleset dan terbawa arus. Ia tidak bisa berenang dan mulai tenggelam.',
+    choices:[
+      { text:'Lempar pelampung/tali, tarik dari tepi sungai, sambil berteriak memanggil bantuan tim.',
+        effects:{safety:+16,health:+11,morale:+5,resources:-5}, quality:'good',
+        feedback:'Sangat tepat! Prinsip penyelamatan air: reach, throw, don\'t go. Jangan langsung melompat jika tidak terlatih.' },
+      { text:'Langsung lompat ke sungai untuk menolong korban.',
+        effects:{safety:-13,health:-9,morale:-5}, quality:'bad',
+        feedback:'Berisiko tinggi! Penolong tanpa pelatihan sering ikut tenggelam.' },
+      { text:'Teriaki peserta lain agar mereka yang menolong korban.',
+        effects:{safety:-11,health:-9,morale:-11}, quality:'bad',
+        feedback:'Tidak efektif. Panitia harus mengambil kendali.' }
+    ]
+  },
+  {
+    phase:'Kegiatan', division:'Kesehatan', icon:'🐝', tag:'Darurat Medis',
+    title:'Peserta Alergi Disengat Lebah',
+    desc:'Seorang peserta yang diketahui alergi tersengat lebah. Wajahnya mulai membengkak, ia mengeluh sesak napas dan pusing.',
+    choices:[
+      { text:'Segera bawa ke fasilitas kesehatan terdekat, gunakan epinefrin jika tersedia, jangan tinggalkan sendiri.',
+        effects:{safety:+16,health:+16,morale:+4,resources:-10}, quality:'good',
+        feedback:'Sangat tepat! Reaksi alergi berat (anafilaksis) bisa mengancam nyawa dalam hitungan menit.' },
+      { text:'Kompres dengan es batu dan beri minum air hangat.',
+        effects:{safety:-11,health:-13}, quality:'bad',
+        feedback:'Sangat tidak cukup! Sesak napas adalah tanda bahaya yang mengancam nyawa.' },
+      { text:'Tenangkan peserta dan pantau sampai bengkak berkurang.',
+        effects:{safety:-9,health:-11}, quality:'bad',
+        feedback:'Berisiko fatal. Kondisi anafilaksis bisa memburuk sangat cepat.' }
+    ]
+  },
+  {
+    phase:'Kegiatan', division:'Pembantu Umum', icon:'🎒', tag:'Keamanan Barang',
+    title:'Barang Peserta Hilang dan Saling Tuduh',
+    desc:'Seorang peserta melaporkan dompet dan ponselnya hilang. Ia menuduh peserta dari sekolah lain. Suasana mulai memanas.',
+    choices:[
+      { text:'Tenangkan, catat kronologi, cek titik terakhir, cari bersama tanpa menuduh siapa pun.',
+        effects:{safety:+4,health:+4,morale:+9}, quality:'good',
+        feedback:'Baik! Menghindari tuduhan tanpa bukti mencegah konflik yang lebih besar.' },
+      { text:'Geledah seluruh tas peserta untuk membuktikan siapa pelakunya.',
+        effects:{safety:0,health:0,morale:-11}, quality:'bad',
+        feedback:'Tidak etis dan melanggar privasi. Penggeledahan hanya boleh dilakukan pihak berwenang.' },
+      { text:'Abaikan saja, itu tanggung jawab pribadi masing-masing.',
+        effects:{safety:-4,health:0,morale:-9}, quality:'bad',
+        feedback:'Kurang empatik. Panitia sebaiknya memfasilitasi pencarian.' }
+    ]
+  },
+  {
+    phase:'Kegiatan', division:'Konsumsi', icon:'🍽️', tag:'Dinamika Peserta',
+    title:'Peserta Menolak Makan Menu yang Disediakan',
+    desc:'Saat makan siang, banyak peserta menolak makanan. Mereka mengeluh tidak enak. Sebagian memilih tidak makan sama sekali.',
+    choices:[
+      { text:'Cari tahu alasan, tawarkan variasi sederhana, pastikan setiap peserta tetap makan sesuatu.',
+        effects:{safety:+3,health:+10,morale:+7,resources:-4}, quality:'good',
+        feedback:'Tepat! Menanyakan alasan lebih efektif daripada memaksa.' },
+      { text:'Paksa mereka makan dengan alasan gizi dan ancam tidak boleh ikut kegiatan.',
+        effects:{safety:0,health:+2,morale:-13}, quality:'bad',
+        feedback:'Kurang bijak. Memaksa makan bisa menimbulkan trauma dan konflik.' },
+      { text:'Biarkan saja, tidak makan sehari tidak akan berpengaruh besar.',
+        effects:{safety:-3,health:-9,morale:-5}, quality:'bad',
+        feedback:'Berisiko. Peserta yang tidak makan akan lemas dan rentan sakit.' }
+    ]
+  },
+  {
+    phase:'Kegiatan', division:'Pembimbing Kelompok', icon:'🥺', tag:'Dinamika Peserta',
+    title:'Peserta Homesick dan Ingin Pulang',
+    desc:'Seorang peserta menangis dan minta pulang karena rindu rumah. Ia menolak ikut kegiatan dan memilih menyendiri di tenda.',
+    choices:[
+      { text:'Dengarkan dengan empati, temani sebentar, hubungi orang tua dengan izin peserta, beri peran kecil.',
+        effects:{safety:+3,health:+4,morale:+12,resources:-2}, quality:'good',
+        feedback:'Sangat tepat! Homesick umum dialami peserta SMP. Mendengarkan tanpa menghakimi dan memberi peran kecil membantu peserta merasa diterima.' },
+      { text:'Abaikan dan suruh ia bergabung agar cepat sembuh sendiri.',
+        effects:{safety:-2,health:-4,morale:-11}, quality:'bad',
+        feedback:'Kurang empatik. Mengabaikan perasaan peserta bisa memperparah kecemasan.' },
+      { text:'Langsung pulangkan tanpa berdiskusi dengan pembina atau orang tua.',
+        effects:{safety:+3,health:+2,morale:-6,resources:-5}, quality:'neutral',
+        feedback:'Kurang bijak. Pemulangan harus melalui diskusi dengan pembina dan orang tua.' }
+    ]
+  },
+  {
+    phase:'Kegiatan', division:'Pembimbing Kelompok', icon:'😠', tag:'Konflik Sosial',
+    title:'Konflik Antar Peserta Sekolah Lain',
+    desc:'Dua peserta dari sekolah berbeda terlibat adu mulut dan hampir berkelahi. Peserta lain mulai berkerumun menonton.',
+    choices:[
+      { text:'Pisahkan dengan tenang, bawa ke posko, dengarkan kedua pihak, mediasi bersama pembina.',
+        effects:{safety:+9,health:+4,morale:+11,resources:-3}, quality:'good',
+        feedback:'Sangat baik! Mediasi yang mendengarkan kedua pihak menumbuhkan rasa keadilan.' },
+      { text:'Hukum keduanya dengan push-up di depan semua peserta.',
+        effects:{safety:0,health:-4,morale:-13}, quality:'bad',
+        feedback:'Kurang bijak. Hukuman publik mempermalukan dan bisa memicu dendam.' },
+      { text:'Biarkan dulu, biasanya selesai sendiri setelah sama-sama lelah.',
+        effects:{safety:-6,health:0,morale:-11}, quality:'bad',
+        feedback:'Berisiko. Konflik yang dibiarkan cenderung membesar.' }
+    ]
+  },
+
+  /* ================= FASE 5: MALAM HARI ================= */
+  {
+    phase:'Malam Hari', division:'Logistik', icon:'🌧️', tag:'Cuaca Ekstrem',
+    title:'Hujan Deras Tengah Malam',
+    desc:'Pukul 01.30 dini hari, hujan deras disertai angin kencang mengguyur bumi perkemahan. Tiga tenda bocor parah. Peserta mulai kedinginan dan panik.',
+    choices:[
+      { text:'Bangunkan semua peserta, evakuasi terorganisir ke aula desa terdekat, hitung ulang jumlah peserta.',
+        effects:{safety:+14,health:+8,morale:-7,resources:-10}, quality:'good',
+        feedback:'Tepat. Keselamatan adalah prioritas mutlak. Risiko hipotermia jauh lebih berbahaya daripada mengorbankan waktu istirahat.' },
+      { text:'Bagikan terpal dan jas hujan, minta peserta bertahan di tenda sampai hujan reda.',
+        effects:{safety:-9,health:-11,morale:+2,resources:-5}, quality:'bad',
+        feedback:'Berisiko tinggi. Tenda bocor tidak melindungi dari hipotermia, apalagi saat angin kencang.' },
+      { text:'Pantau dari posko dan tunggu hingga subuh.',
+        effects:{safety:-16,health:-15,morale:-10}, quality:'bad',
+        feedback:'Sangat berbahaya. Menunda tindakan bisa berakibat fatal — hipotermia bisa terjadi dalam hitungan jam.' }
+    ]
+  },
+  {
+    phase:'Malam Hari', division:'Pembantu Umum', icon:'💡', tag:'Gangguan Teknis',
+    title:'Listrik Padam Total',
+    desc:'Pukul 21.00 genset mati dan seluruh area gelap gulita. Peserta mulai berteriak, berkerumun, dan berlarian tanpa arah.',
+    choices:[
+      { text:'Nyalakan lampu darurat dan senter, minta peserta tetap di tempat, tenangkan lewat pengeras suara.',
+        effects:{safety:+9,health:+6,morale:+9,resources:-5}, quality:'good',
+        feedback:'Bagus! Ketenangan panitia menular ke peserta. Pastikan setiap kelompok punya senter.' },
+      { text:'Minta seluruh peserta berkumpul di satu tenda besar.',
+        effects:{safety:0,health:0,morale:-6,resources:-3}, quality:'neutral',
+        feedback:'Kurang ideal. Berkerumun dalam gelap berisiko menimbulkan desakan dan cedera.' },
+      { text:'Biarkan saja, biasanya menyala sendiri setelah beberapa saat.',
+        effects:{safety:-11,health:-6,morale:-11}, quality:'bad',
+        feedback:'Berbahaya. Dalam gelap peserta bisa tersesat, terjatuh, atau menghilang.' }
+    ]
+  },
+  {
+    phase:'Malam Hari', division:'Pembantu Umum', icon:'🐍', tag:'Hewan Liar',
+    title:'Ular Masuk ke Area Tenda',
+    desc:'Peserta melaporkan melihat ular masuk ke bawah salah satu tenda. Kepanikan menyebar dan peserta mulai berlarian.',
+    choices:[
+      { text:'Jauhkan peserta, tandai area, hubungi petugas atau warga berpengalaman.',
+        effects:{safety:+11,health:+6,morale:+5,resources:-3}, quality:'good',
+        feedback:'Tepat! Jangan pernah mencoba menangkap sendiri. Catat lokasi dan ciri ular untuk penanganan aman.' },
+      { text:'Usir ular dengan sapu sambil berteriak.',
+        effects:{safety:-9,health:-6,morale:-4}, quality:'bad',
+        feedback:'Berisiko! Ular yang merasa terancam akan menyerang.' },
+      { text:'Pindahkan tenda ke lokasi lain dan lanjutkan acara.',
+        effects:{safety:+3,health:+3,morale:-5,resources:-5}, quality:'neutral',
+        feedback:'Cukup aman untuk sementara, tetapi ularnya masih berada di area.' }
+    ]
+  },
+  {
+    phase:'Malam Hari', division:'Pembimbing Kelompok', icon:'😴', tag:'Dinamika Peserta',
+    title:'Peserta Begadang dan Ribut Malam',
+    desc:'Pukul 23.00 peserta masih ribut dan tidak mau tidur. Beberapa peserta dari tenda lain mulai terganggu dan mengeluh karena besok harus bangun pagi.',
+    choices:[
+      { text:'Datangi tenda dengan tenang, ingatkan jadwal, tawarkan aktivitas menenangkan.',
+        effects:{safety:+4,health:+6,morale:+8,resources:-2}, quality:'good',
+        feedback:'Baik! Pendekatan personal dan lembut jauh lebih efektif daripada bentakan.' },
+      { text:'Teriaki seluruh tenda dan ancam memberi hukuman.',
+        effects:{safety:0,health:-3,morale:-11}, quality:'bad',
+        feedback:'Kurang tepat. Suara keras di malam hari memicu perlawanan dan mengganggu tenda lain.' },
+      { text:'Biarkan saja, besok mereka lelah sendiri.',
+        effects:{safety:-4,health:-6,morale:-5}, quality:'bad',
+        feedback:'Berisiko. Kurang tidur membuat peserta lesu, mudah tersinggung, dan rentan sakit.' }
+    ]
+  },
+
+  /* ================= FASE 6: KEPULANGAN ================= */
+  {
+    phase:'Kepulangan', division:'Pembantu Umum', icon:'🎒', tag:'Kepulangan',
+    title:'Barang Peserta Tertinggal di Lokasi',
+    desc:'Bus sudah siap berangkat pulang, tiba-tiba seorang peserta ingat dompet dan HP-nya tertinggal di tenda yang sudah dibongkar.',
+    choices:[
+      { text:'Lakukan pengecekan menyeluruh semua area sebelum berangkat, catat barang, koordinasi.',
+        effects:{safety:+7,health:+4,morale:+8,resources:-3}, quality:'good',
+        feedback:'Tepat! Pengecekan menyeluruh sebelum meninggalkan lokasi mencegah kehilangan.' },
+      { text:'Suruh peserta ambil sendiri, bus menunggu.',
+        effects:{safety:+3,health:+2,morale:-4,resources:-2}, quality:'neutral',
+        feedback:'Boleh, tetapi pengecekan menyeluruh lebih baik agar tidak ada barang lain yang tertinggal.' },
+      { text:'Tinggalkan saja, nanti dikirim via pos.',
+        effects:{safety:-3,health:-2,morale:-9,resources:-3}, quality:'bad',
+        feedback:'Kurang bertanggung jawab. Barang berharga seperti HP dan dompet sebaiknya dipastikan terbawa.' }
+    ]
+  },
+  {
+    phase:'Kepulangan', division:'Pembantu Umum', icon:'🗑️', tag:'Kepulangan',
+    title:'Sampah Menumpuk dan Lokasi Kotor',
+    desc:'Saat akan pulang, sampah berserakan di area perkemahan. Pengelola lokasi meminta peserta membersihkan sebelum pulang.',
+    choices:[
+      { text:'Ajak peserta bersih-bersih bersama, terapkan prinsip leave no trace.',
+        effects:{safety:+5,health:+6,morale:+9,resources:-3}, quality:'good',
+        feedback:'Tepat! Leave no trace adalah nilai penting dalam kegiatan alam.' },
+      { text:'Pulang saja, nanti dibersihkan petugas.',
+        effects:{safety:-3,health:-2,morale:-9,resources:-2}, quality:'bad',
+        feedback:'Kurang bertanggung jawab. Membuang sampah sembarangan merusak reputasi sekolah.' },
+      { text:'Marahi peserta dan suruh mereka bersihkan sendiri.',
+        effects:{safety:+1,health:+1,morale:-11}, quality:'bad',
+        feedback:'Kurang bijak. Ajak dengan memberi contoh, bukan dengan memarahi.' }
+    ]
+  },
+  {
+    phase:'Kepulangan', division:'Kesehatan', icon:'🤒', tag:'Kesehatan',
+    title:'Peserta Demam Saat Akan Pulang',
+    desc:'Pagi hari sebelum pulang, seorang peserta demam tinggi, lemas, dan tidak bisa ikut bersih-bersih. Suhu tubuhnya 39°C.',
+    choices:[
+      { text:'Beri P3K, istirahatkan, konsultasi tenaga medis, tunda kepulangan jika perlu.',
+        effects:{safety:+10,health:+13,morale:+4,resources:-6}, quality:'good',
+        feedback:'Tepat! Demam tinggi perlu evaluasi medis. Jangan paksakan perjalanan jika kondisi peserta belum stabil.' },
+      { text:'Tetap bawa pulang dan beri obat warung.',
+        effects:{safety:-7,health:-11,morale:-3}, quality:'bad',
+        feedback:'Berisiko. Demam tinggi bisa menjadi gejala penyakit serius.' },
+      { text:'Tinggalkan di puskesmas sambil menunggu orang tua.',
+        effects:{safety:+5,health:+6,morale:-7,resources:-5}, quality:'neutral',
+        feedback:'Boleh jika kondisi serius, tetapi koordinasikan dengan orang tua dan pembina terlebih dahulu.' }
+    ]
+  },
+  {
+    phase:'Kepulangan', division:'Pembimbing Kelompok', icon:'👨‍👩‍👧', tag:'Kepulangan',
+    title:'Orang Tua Tidak Menjemput di Sekolah',
+    desc:'Setelah tiba kembali di sekolah, 3 peserta belum dijemput orang tuanya. Sore mulai turun dan sekolah akan ditutup.',
+    choices:[
+      { text:'Tetap dampingi, hubungi orang tua/wali, koordinasi dengan sekolah/pembina.',
+        effects:{safety:+8,health:+7,morale:+9,resources:-3}, quality:'good',
+        feedback:'Tepat! Serah terima peserta kepada orang tua adalah bagian penting dari prosedur kepulangan.' },
+      { text:'Pulangkan sendiri naik ojek.',
+        effects:{safety:-13,health:-5,morale:-3,resources:-3}, quality:'bad',
+        feedback:'Berisiko. Peserta SMP naik ojek sendirian tanpa pengawasan sangat berbahaya.' },
+      { text:'Tinggalkan di sekolah karena sudah sampai.',
+        effects:{safety:-11,health:-7,morale:-8}, quality:'bad',
+        feedback:'Sangat tidak bertanggung jawab. Panitia wajib memastikan setiap peserta sampai ke tangan orang tua/wali.' }
+    ]
+  }
+];
+
+/* =========================================================
+   KONFIGURASI
+   ========================================================= */
+const STAT_META = {
+  safety:    { label:'Keselamatan',     icon:'🛡️', weight:0.35 },
+  health:    { label:'Kondisi Peserta', icon:'❤️', weight:0.30 },
+  morale:    { label:'Moral Tim',       icon:'🤝', weight:0.20 },
+  resources: { label:'Logistik',        icon:'📦', weight:0.15 }
+};
+const START_STATS = { safety:80, health:80, morale:75, resources:80 };
+const TIMER_SECONDS = 30;
+
+const state = {
+  stats:{...START_STATS}, index:0, challenge:false,
+  log:[], divLog:{}, timerId:null, timeLeft:TIMER_SECONDS, answered:false
+};
+
+const $ = id => document.getElementById(id);
+const clamp = v => Math.max(0, Math.min(100, v));
+const statColor = v => v >= 65 ? 'var(--green)' : v >= 40 ? 'var(--amber)' : 'var(--red)';
+
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen-' + name).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function buildHUD(){
+  $('hud').innerHTML = Object.keys(STAT_META).map(key => {
+    const m = STAT_META[key];
+    return `
+      <div class="stat" id="stat-${key}">
+        <div class="stat-top">
+          <span class="stat-name">${m.icon} ${m.label}</span>
+          <span class="stat-val" id="val-${key}">0</span>
+        </div>
+        <div class="bar"><div class="bar-fill" id="bar-${key}" style="width:0%"></div></div>
+      </div>`;
+  }).join('');
+}
+
+function updateHUD(changed = []){
+  Object.keys(STAT_META).forEach(key => {
+    const val = state.stats[key];
+    const v = $('val-' + key), b = $('bar-' + key);
+    if (!v || !b) return;
+    v.textContent = Math.round(val);
+    v.style.color = statColor(val);
+    b.style.width = val + '%';
+    b.style.background = statColor(val);
+    if (changed.includes(key)) {
+      const box = $('stat-' + key);
+      box.classList.remove('pulse');
+      void box.offsetWidth;
+      box.classList.add('pulse');
+    }
+  });
+}
+
+function startGame(){
+  state.stats = {...START_STATS};
+  state.index = 0;
+  state.log = [];
+  state.divLog = {};
+  Object.keys(DIVISIONS).forEach(d => state.divLog[d] = { good:0, neutral:0, bad:0 });
+  state.answered = false;
+  state.challenge = $('challenge-mode').checked;
+
+  buildHUD();
+  updateHUD();
+  showScreen('game');
+  renderScenario();
+}
+
+function renderScenario(){
+  clearTimer();
+  state.answered = false;
+  const sc = SCENARIOS[state.index];
+  const num = state.index + 1;
+  const div = DIVISIONS[sc.division];
+
+  $('scenario-icon').textContent = sc.icon;
+  $('scenario-phase').textContent = sc.phase;
+  $('scenario-division').textContent = div.icon + ' ' + sc.division;
+  $('scenario-division').style.color = div.color;
+  $('scenario-division').style.background = div.bg;
+  $('scenario-division').style.borderColor = div.border;
+  $('scenario-tag').textContent = sc.tag;
+  $('scenario-title').textContent = sc.title;
+  $('scenario-desc').textContent = sc.desc;
+
+  $('progress-text').textContent = num + ' / ' + SCENARIOS.length;
+  $('progress-fill').style.width = (state.index / SCENARIOS.length * 100) + '%';
+
+  $('feedback-slot').innerHTML = '';
+  $('actions').style.display = 'none';
+
+  const letters = ['A','B','C'];
+  $('choices').innerHTML = sc.choices.map((c, i) => `
+    <button class="choice" data-idx="${i}">
+      <span class="choice-letter">${letters[i]}</span>
+      <span class="choice-text">${c.text}</span>
+    </button>
+  `).join('');
+
+  $('choices').querySelectorAll('.choice').forEach(btn => {
+    btn.addEventListener('click', () => choose(parseInt(btn.dataset.idx, 10)));
+  });
+
+  if (state.challenge) startTimer();
+}
+
+function startTimer(){
+  const el = $('timer');
+  el.style.display = 'flex';
+  el.classList.remove('warn');
+  state.timeLeft = TIMER_SECONDS;
+  $('timer-num').textContent = state.timeLeft;
+  state.timerId = setInterval(() => {
+    state.timeLeft--;
+    $('timer-num').textContent = Math.max(0, state.timeLeft);
+    if (state.timeLeft <= 10) el.classList.add('warn');
+    if (state.timeLeft <= 0) { clearTimer(); timeOut(); }
+  }, 1000);
+}
+
+function clearTimer(){
+  if (state.timerId) clearInterval(state.timerId);
+  state.timerId = null;
+  $('timer').style.display = 'none';
+}
+
+function timeOut(){
+  if (state.answered) return;
+  state.answered = true;
+  const prev = {...state.stats};
+  const penalty = {safety:-6, health:-6, morale:-7, resources:-5};
+  Object.keys(penalty).forEach(k => state.stats[k] = clamp(state.stats[k] + penalty[k]));
+  updateHUD(Object.keys(penalty));
+  const sc = SCENARIOS[state.index];
+  state.divLog[sc.division].bad++;
+  state.log.push({ icon:sc.icon, title:sc.title, choice:'⏱ Tidak mengambil keputusan (waktu habis)', quality:'bad' });
+  $('choices').querySelectorAll('.choice').forEach(b => b.disabled = true);
+  renderFeedback('bad', '⏱ Waktu Habis!',
+    'Dalam situasi krisis, keputusan yang terlambat sama berbahayanya dengan keputusan yang salah. Peserta menunggu terlalu lama dan kondisi memburuk.',
+    penalty);
+  showNextButton();
+}
+
+function choose(idx){
+  if (state.answered) return;
+  state.answered = true;
+  clearTimer();
+  const sc = SCENARIOS[state.index];
+  const choice = sc.choices[idx];
+  Object.keys(choice.effects).forEach(k => {
+    state.stats[k] = clamp(state.stats[k] + choice.effects[k]);
+  });
+  const changed = Object.keys(choice.effects).filter(k => choice.effects[k] !== 0);
+  updateHUD(changed);
+  state.divLog[sc.division][choice.quality === 'good' ? 'good' : choice.quality === 'neutral' ? 'neutral' : 'bad']++;
+  state.log.push({ icon:sc.icon, title:sc.title, choice:choice.text, quality:choice.quality });
+
+  const buttons = $('choices').querySelectorAll('.choice');
+  buttons.forEach((b, i) => {
+    b.disabled = true;
+    if (i === idx) b.classList.add(choice.quality === 'good' ? 'correct' : 'chosen');
+  });
+
+  const titles = {
+    good:'✅ Keputusan Tepat',
+    neutral:'⚠️ Keputusan Cukup Baik',
+    bad:'❌ Keputusan Berisiko'
+  };
+  renderFeedback(choice.quality, titles[choice.quality], choice.feedback, choice.effects);
+  showNextButton();
+}
+
+function renderFeedback(quality, title, text, effects){
+  const deltas = Object.keys(effects)
+    .filter(k => effects[k] !== 0)
+    .map(k => {
+      const d = effects[k];
+      const cls = d > 0 ? 'up' : 'down';
+      const sign = d > 0 ? '+' : '';
+      return `<span class="delta ${cls}">${STAT_META[k].icon} ${STAT_META[k].label} ${sign}${d}</span>`;
+    }).join('');
+  $('feedback-slot').innerHTML = `
+    <div class="feedback ${quality}">
+      <div class="fb-title">${title}</div>
+      <div class="fb-text">${text}</div>
+      <div class="deltas">${deltas}</div>
+    </div>`;
+}
+
+function showNextButton(){
+  const isLast = state.index === SCENARIOS.length - 1;
+  $('btn-next').textContent = isLast ? 'Lihat Hasil →' : 'Skenario Berikutnya →';
+  $('actions').style.display = 'flex';
+}
+
+function nextScenario(){
+  state.index++;
+  if (state.index >= SCENARIOS.length) endGame();
+  else renderScenario();
+}
+
+function endGame(){
+  clearTimer();
+  $('progress-fill').style.width = '100%';
+  const s = state.stats;
+  const score = Math.round(
+    s.safety * STAT_META.safety.weight +
+    s.health * STAT_META.health.weight +
+    s.morale * STAT_META.morale.weight +
+    s.resources * STAT_META.resources.weight
+  );
+
+  let grade, title, desc, color;
+  if (score >= 85)      { grade='A'; title='Panitia Teladan';     desc='Luar biasa! Kamu mengambil keputusan cepat, tepat, dan berorientasi keselamatan. Kamu siap memimpin kegiatan nyata.'; color='var(--green)'; }
+  else if (score >= 70) { grade='B'; title='Panitia Tanggap';     desc='Kerja bagus! Sebagian besar keputusanmu solid. Tingkatkan kewaspadaan pada detail kecil yang bisa membesar jadi masalah.'; color='var(--blue)'; }
+  else if (score >= 55) { grade='C'; title='Perlu Pembenahan';    desc='Kamu berhasil melewati krisis, tetapi beberapa keputusan memperburuk keadaan. Pelajari kembali prosedur darurat dasar.'; color='var(--amber)'; }
+  else                  { grade='D'; title='Perlu Latihan Ulang'; desc='Banyak keputusan berisiko membuat kondisi memburuk. Ini saatnya belajar serius tentang manajemen krisis dan P3K.'; color='var(--red)'; }
+
+  const circle = $('grade-circle');
+  circle.textContent = grade;
+  circle.style.color = color;
+  circle.style.borderColor = color;
+  circle.style.background = `radial-gradient(circle, ${color}22, transparent 70%)`;
+  $('grade-title').textContent = title;
+  $('grade-title').style.color = color;
+  $('grade-desc').textContent = desc;
+
+  $('summary').innerHTML =
+    `<div class="sum-item">
+      <div class="lbl">Skor Akhir</div>
+      <div class="val" style="color:${color}">${score}<span style="font-size:.85rem;color:var(--muted)">/100</span></div>
+    </div>` +
+    Object.keys(STAT_META).map(k =>
+      `<div class="sum-item">
+        <div class="lbl">${STAT_META[k].icon} ${STAT_META[k].label}</div>
+        <div class="val" style="color:${statColor(state.stats[k])}">${Math.round(state.stats[k])}</div>
+      </div>`
+    ).join('');
+
+  // Ringkasan per divisi
+  $('div-summary').innerHTML = Object.keys(DIVISIONS).map(d => {
+    const div = DIVISIONS[d];
+    const l = state.divLog[d];
+    const total = l.good + l.neutral + l.bad;
+    const ratio = total > 0 ? Math.round((l.good / total) * 100) : 0;
+    const barColor = ratio >= 70 ? 'var(--green)' : ratio >= 40 ? 'var(--amber)' : 'var(--red)';
+    return `
+      <div class="div-item">
+        <b style="color:${div.color}">${div.icon} ${d}</b>
+        <span style="color:var(--muted);font-size:.75rem">Tepat ${l.good} · Cukup ${l.neutral} · Risiko ${l.bad}</span>
+        <div class="bar" style="margin-top:6px">
+          <div class="bar-fill" style="width:${ratio}%;background:${barColor}"></div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const lowest = Object.keys(STAT_META).reduce((a, b) => state.stats[a] < state.stats[b] ? a : b);
+  const tips = {
+    safety:'Aspek <b>keselamatan</b> paling lemah. Selalu utamakan nyawa: evakuasi dulu, hitung ulang peserta, siapkan jalur darurat, dan jangan pernah bertindak sendirian saat pencarian korban.',
+    health:'Aspek <b>kondisi peserta</b> perlu diperhatikan. Kuasai P3K dasar (posisi pemulihan, penanganan dehidrasi, reaksi alergi) dan petakan akses ke fasilitas kesehatan terdekat sebelum berangkat.',
+    morale:'Aspek <b>moral dan kebersamaan</b> perlu ditingkatkan. Tangani konflik secara privat dan adil, hindari hukuman yang mempermalukan, dan jaga komunikasi yang menenangkan saat krisis.',
+    resources:'Aspek <b>logistik</b> perlu diperkuat. Buat rencana cadangan untuk air, bahan bakar, dan makanan; jalin koordinasi dengan warga desa; dan siapkan dana darurat.'
+  };
+  $('tip-box').innerHTML = `<b>💡 Catatan Evaluasi</b>${tips[lowest]}`;
+
+  $('log').innerHTML = state.log.map(item =>
+    `<div class="log-item">
+      <span class="dot ${item.quality}"></span>
+      <div><b>${item.icon} ${item.title}</b><br><span>${item.choice}</span></div>
+    </div>`
+  ).join('');
+
+  showScreen('end');
+}
+
+$('btn-start').addEventListener('click', startGame);
+$('btn-next').addEventListener('click', nextScenario);
+$('btn-restart').addEventListener('click', () => showScreen('intro'));
+</script>
+</body>
+</html>
